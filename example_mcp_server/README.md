@@ -1,4 +1,4 @@
-# 🔧 Monetized MCP Server Example
+# Monetized MCP Server Example
 
 A complete example of an MCP (Model Context Protocol) server with **integrated payment processing** using PayLink.
 
@@ -195,4 +195,3 @@ Add more paid tools by:
 ---
 
 Part of the [PayLink MCP Monetization Example](../README.md)
-

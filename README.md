@@ -1,8 +1,8 @@
-# 💰 How to Monetize MCP Servers
+# How to Monetize MCP Servers
 
 A complete example demonstrating how developers can **monetize MCP (Model Context Protocol) servers** using PayLink, and how AI agents can consume these paid services.
 
-## 📖 Overview
+## Overview
 
 This project showcases the integration between:
 - **MCP Servers** - Tools that AI models can use
@@ -18,7 +18,7 @@ The diagram above illustrates the complete payment flow:
 1. **Agent** initiates a call to a monetized MCP tool
 2. **PayLink Infrastructure** validates the payment:
    - Checks if the Agent Wallet has sufficient balance
-   - Transfers funds from Agent Wallet → MCP Wallet
+   - Transfers funds from Agent Wallet to MCP Wallet
 3. **On Success**: Request is forwarded to the Monetized MCP Server, which executes the tool and returns the result
 4. **On Failure** (Out of Credits): The agent is notified to request user funding
 
@@ -31,7 +31,7 @@ The diagram above illustrates the complete payment flow:
 5. Payment is transferred from agent's wallet to server's wallet
 6. **Tool executes** and returns the result
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 how_to_monitize_mcp/
@@ -50,7 +50,7 @@ how_to_monitize_mcp/
     └── README.md
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -99,7 +99,7 @@ langgraph dev
 
 The agent will be available at `http://127.0.0.1:2024` with Studio UI.
 
-## 📝 Detailed Implementation
+## Detailed Implementation
 
 ### Monetized MCP Server (`example_mcp_server/main.py`)
 
@@ -209,7 +209,7 @@ result = client.call_tool("add", {"a": 5, "b": 3})
 print(result)  # Output: 8
 ```
 
-## 💳 Wallet Configuration
+## Wallet Configuration
 
 Both the agent and server need wallet configuration. Set up your `.env` file:
 
@@ -228,7 +228,7 @@ WALLET_CONNECTION_STRING=""
 OPENAI_API_KEY=your-openai-key
 ```
 
-## 🔧 Dependencies
+## Dependencies
 
 ### MCP Server
 
@@ -253,7 +253,7 @@ dependencies = [
 ]
 ```
 
-## 🎯 Key Concepts
+## Key Concepts
 
 ### What is MCP?
 
@@ -276,7 +276,7 @@ The **Model Context Protocol (MCP)** is an open standard that enables AI models 
 - **Sustainable ecosystem** for AI tool development
 - **Pay-per-use model** that scales with actual usage
 
-## 📊 Example Flow
+## Example Flow
 
 ```
 User: "What is 15 plus 27?"
@@ -294,7 +294,7 @@ User: "What is 15 plus 27?"
 8. Agent responds: "15 plus 27 equals 42"
 ```
 
-## 🛠 Customization
+## Customization
 
 ### Adding New Paid Tools
 
@@ -326,18 +326,13 @@ You can also implement dynamic pricing based on:
 - Time of day
 - User tier
 
-## 🔗 Resources
+## Resources
 
 - [MCP Documentation](https://modelcontextprotocol.io/)
 - [LangChain Documentation](https://python.langchain.com/)
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [uv Documentation](https://docs.astral.sh/uv/)
 
-## 📄 License
+## License
 
 This example is provided for educational purposes as part of the PayLink SDK.
-
----
-
-**Built with ❤️ using PayLink, MCP, and LangChain**
-

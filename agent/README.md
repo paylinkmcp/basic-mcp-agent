@@ -1,4 +1,4 @@
-# 🤖 AI Agent with Monetized MCP Tools
+# AI Agent with Monetized MCP Tools
 
 A LangChain/LangGraph agent that connects to **monetized MCP servers** and pays for tool usage automatically via PayLink.
 
@@ -53,9 +53,9 @@ langgraph dev
 ```
 
 Access:
-- 🚀 API: http://127.0.0.1:2024
-- 🎨 Studio UI: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
-- 📚 API Docs: http://127.0.0.1:2024/docs
+- API: http://127.0.0.1:2024
+- Studio UI: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
+- API Docs: http://127.0.0.1:2024/docs
 
 **Option 2: Interactive Notebook**
 
@@ -245,13 +245,12 @@ Monitor your wallet balance through the PayLink dashboard.
 
 ### "Insufficient balance" error
 - Add funds to your agent wallet
-- Verify `PAYLINK_WALLET_ID` is correct
+- Verify `WALLET_CONNECTION_STRING` is correct
 
 ### "Invalid API key" error
-- Check `PAYLINK_API_KEY` in your `.env` file
-- Regenerate API key from PayLink dashboard
+- Check your `.env` file configuration
+- Regenerate credentials from PayLink dashboard
 
 ---
 
 Part of the [PayLink MCP Monetization Example](../README.md)
-
