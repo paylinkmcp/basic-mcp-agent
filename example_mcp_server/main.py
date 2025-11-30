@@ -16,8 +16,6 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.types import TextContent
 import mcp.types as types
 
-from paylink.mcp.monetize_mcp import require_payment
-from paylink.mcp.wallet_context import set_agent_wallet_from_scope, reset_agent_wallet
 
 load_dotenv()
 
@@ -79,12 +77,6 @@ def main(
         ]
 
     @app.call_tool()
-    @require_payment(
-        {
-            "add": 0.10,
-            "subtract": 0.20,
-        }
-    )
     async def call_tool(tool_name: str, arguments: dict[str, Any]) -> list[TextContent]:
         if tool_name == "add":
             result = arguments["a"] + arguments["b"]
@@ -109,15 +101,12 @@ def main(
     async def handle_streamable_http(
         scope: Scope, receive: Receive, send: Send
     ) -> None:
-        # sets wallet into request context variable
-        token = set_agent_wallet_from_scope(scope)
-
         try:
             await session_manager.handle_request(scope, receive, send)
         except Exception:
             logger.exception("Streamable HTTP error")
         finally:
-            reset_agent_wallet(token)
+            pass
 
     @contextlib.asynccontextmanager
     async def lifespan(starlette_app: Starlette) -> AsyncIterator[None]:

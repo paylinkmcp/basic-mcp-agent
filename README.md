@@ -1,44 +1,34 @@
-# How to Monetize MCP Servers
+# Basic MCP Server with PayLink Integration
 
-A complete example demonstrating how developers can **monetize MCP (Model Context Protocol) servers** using PayLink, and how AI agents can consume these paid services.
+A simple example demonstrating how to build an **MCP (Model Context Protocol) server** and connect it to an AI agent using PayLink infrastructure.
 
 ## Overview
 
 This project showcases the integration between:
 - **MCP Servers** - Tools that AI models can use
-- **PayLink** - A payment layer that enables monetization
-- **AI Agents** - LangChain/LangGraph agents that pay to use tools
+- **PayLink** - Infrastructure for connecting MCP servers to agents
+- **AI Agents** - LangChain/LangGraph agents that use MCP tools
 
 ### Architecture
 
 ![How to Monetize MCP](./images/how%20to%20monitize%20mcp.png)
 
-The diagram above illustrates the complete payment flow:
+This example demonstrates a basic MCP server setup:
 
-1. **Agent** initiates a call to a monetized MCP tool
-2. **PayLink Infrastructure** validates the payment:
-   - Checks if the Agent Wallet has sufficient balance
-   - Transfers funds from Agent Wallet to MCP Wallet
-3. **On Success**: Request is forwarded to the Monetized MCP Server, which executes the tool and returns the result
-4. **On Failure** (Out of Credits): The agent is notified to request user funding
-
-### How Payment Works
-
-1. **Agent** calls a tool via `PayLinkTools`
-2. **PayLink** intercepts the request and attaches the agent's wallet credentials
-3. **MCP Server** receives the request with wallet context via `set_agent_wallet_from_scope()`
-4. **@require_payment** decorator checks if payment is required and processes it
-5. Payment is transferred from agent's wallet to server's wallet
-6. **Tool executes** and returns the result
+1. **MCP Server** exposes tools (add, subtract) via HTTP
+2. **AI Agent** connects to the MCP server using `PayLinkTools`
+3. **PayLink** provides the connection infrastructure between agent and server
+4. **Tools execute** and return results to the agent
 
 ## Project Structure
 
 ```
-how_to_monitize_mcp/
+basic-mcp+agent/
 ├── README.md                    # This file
-├── example_mcp_server/          # The monetized MCP server
+├── example_mcp_server/          # The MCP server
 │   ├── main.py                  # Server implementation
 │   ├── pyproject.toml           # Dependencies
+│   ├── .env.example             # Environment variable template
 │   └── README.md
 └── agent/                       # The AI agent consumer
     ├── src/
@@ -47,6 +37,7 @@ how_to_monitize_mcp/
     │   └── use_monitized_mcp.ipynb  # Interactive example
     ├── langgraph.json           # LangGraph configuration
     ├── pyproject.toml           # Dependencies
+    ├── .env.example             # Environment variable template
     └── README.md
 ```
 
@@ -56,15 +47,25 @@ how_to_monitize_mcp/
 
 - **Python 3.13+**
 - **[uv](https://docs.astral.sh/uv/)** - Fast Python package manager
-- **OpenAI API Key** - For the AI agent (set as `OPENAI_API_KEY`)
-- **PayLink Account** - For wallet credentials
+- **OpenAI API Key** - For the AI agent
+- **PayLink Account** - For wallet connection strings
 
-### Step 1: Start the Monetized MCP Server
+### Step 1: Configure the MCP Server
 
 ```bash
 # Navigate to the server directory
 cd example_mcp_server
 
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env and add your MCP_WALLET_CONNECTION_STRING
+# Generate this value on the PayLink platform
+```
+
+### Step 2: Start the MCP Server
+
+```bash
 # Create and activate virtual environment
 uv venv
 source .venv/bin/activate
@@ -78,7 +79,7 @@ uv run main.py
 
 The server will start at `http://0.0.0.0:5003/mcp`
 
-### Step 2: Run the AI Agent
+### Step 3: Configure the AI Agent
 
 Open a new terminal:
 
@@ -86,6 +87,17 @@ Open a new terminal:
 # Navigate to the agent directory
 cd agent
 
+# Copy the environment template
+cp .env.example .env
+
+# Edit .env and add:
+# - WALLET_CONNECTION_STRING (generate on PayLink platform)
+# - OPENAI_API_KEY (your OpenAI API key)
+```
+
+### Step 4: Run the AI Agent
+
+```bash
 # Create and activate virtual environment
 uv venv
 source .venv/bin/activate
@@ -101,9 +113,9 @@ The agent will be available at `http://127.0.0.1:2024` with Studio UI.
 
 ## Detailed Implementation
 
-### Monetized MCP Server (`example_mcp_server/main.py`)
+### MCP Server (`example_mcp_server/main.py`)
 
-The MCP server exposes tools that **require payment** before execution:
+The MCP server exposes simple tools via HTTP:
 
 #### 1. Define Tools
 
@@ -131,43 +143,40 @@ async def list_tools() -> list[types.Tool]:
     ]
 ```
 
-#### 2. Add Payment Requirements with `@require_payment`
+#### 2. Implement Tool Handlers
 
 ```python
-from paylink.mcp.monetize_mcp import require_payment
-
 @app.call_tool()
-@require_payment(
-    {
-        "add": 0.10,       # $0.10 per call
-        "subtract": 0.20,  # $0.20 per call
-    }
-)
 async def call_tool(tool_name: str, arguments: dict[str, Any]) -> list[TextContent]:
     if tool_name == "add":
         result = arguments["a"] + arguments["b"]
         return [types.TextContent(type="text", text=str(result))]
+    elif tool_name == "subtract":
+        result = arguments["a"] - arguments["b"]
+        return [types.TextContent(type="text", text=str(result))]
     # ... handle other tools
 ```
 
-#### 3. Extract Wallet Context from Requests
+#### 3. Set Up HTTP Server
 
 ```python
-from paylink.mcp.wallet_context import set_agent_wallet_from_scope, reset_agent_wallet
+session_manager = StreamableHTTPSessionManager(
+    app=app,
+    event_store=None,
+    json_response=json_response,
+    stateless=True,
+)
 
 async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
-    # Extract wallet info from request headers
-    token = set_agent_wallet_from_scope(scope)
-    
     try:
         await session_manager.handle_request(scope, receive, send)
-    finally:
-        reset_agent_wallet(token)
+    except Exception:
+        logger.exception("Streamable HTTP error")
 ```
 
 ### AI Agent (`agent/src/graph.py`)
 
-The agent uses `PayLinkTools` to connect to monetized MCP servers:
+The agent uses `PayLinkTools` to connect to the MCP server:
 
 ```python
 from langchain.agents import create_agent
@@ -177,10 +186,10 @@ from paylink.integrations.langchain_tools import PayLinkTools
 # Initialize the LLM
 llm = init_chat_model(model="gpt-4o-mini")
 
-# Connect to the monetized MCP server
+# Connect to the MCP server via PayLink
 client = PayLinkTools(base_url="http://0.0.0.0:5003/mcp")
 
-# Get available tools (includes payment metadata)
+# Get available tools
 tools = client.list_tools()
 
 # Create the agent with the tools
@@ -197,36 +206,49 @@ The interactive notebook (`agent/notebooks/use_monitized_mcp.ipynb`) demonstrate
 ```python
 from paylink.integrations.langchain_tools import PayLinkTools
 
-# Connect to the monetized server
+# Connect to the MCP server
 client = PayLinkTools(base_url="http://0.0.0.0:5003/mcp")
 
 # List available tools
 tools = client.list_tools()
 print(tools)
 
-# Call a paid tool (payment is automatic)
+# Call a tool
 result = client.call_tool("add", {"a": 5, "b": 3})
 print(result)  # Output: 8
 ```
 
-## Wallet Configuration
+## Environment Configuration
 
-Both the agent and server need wallet configuration. Set up your `.env` file:
+Both the agent and server need environment configuration. Follow these steps:
 
 ### For the MCP Server
 
-```env
-# Server receives payments to this wallet
-MCP_WALLET_CONNECTION_STRING = ""
-```
+1. Navigate to `example_mcp_server` directory
+2. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+3. Generate `MCP_WALLET_CONNECTION_STRING` on the PayLink platform
+4. Add it to your `.env` file:
+   ```env
+   MCP_WALLET_CONNECTION_STRING="your-connection-string-here"
+   ```
 
 ### For the Agent
 
-```env
-# Agent pays from this wallet
-WALLET_CONNECTION_STRING=""
-OPENAI_API_KEY=your-openai-key
-```
+1. Navigate to `agent` directory
+2. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+3. Generate `WALLET_CONNECTION_STRING` on the PayLink platform
+4. Add your OpenAI API key
+5. Update your `.env` file:
+   ```env
+   WALLET_CONNECTION_STRING="your-connection-string-here"
+   OPENAI_API_KEY=your-openai-key
+   ```
 
 ## Dependencies
 
@@ -264,17 +286,17 @@ The **Model Context Protocol (MCP)** is an open standard that enables AI models 
 
 ### What is PayLink?
 
-**PayLink** is a payment layer that enables monetization of AI services. It provides:
+**PayLink** provides infrastructure for connecting MCP servers to AI agents. It provides:
 - **Wallet management** for both service providers and consumers
-- **Automatic payment processing** via decorators
+- **Connection infrastructure** between agents and MCP servers
 - **Integration with popular frameworks** (LangChain, MCP, etc.)
 
-### Why Monetize MCP Servers?
+### Why Use PayLink with MCP Servers?
 
-- **Tool developers** can earn revenue from their creations
-- **Fair compensation** for computational resources and API calls
-- **Sustainable ecosystem** for AI tool development
-- **Pay-per-use model** that scales with actual usage
+- **Standardized connection** between agents and MCP servers
+- **Secure communication** with wallet-based authentication
+- **Easy integration** with LangChain and LangGraph agents
+- **Foundation for monetization** when you're ready to add payment features
 
 ## Example Flow
 
@@ -285,46 +307,45 @@ User: "What is 15 plus 27?"
 2. LLM decides to use the "add" tool
 3. PayLinkTools sends request to MCP server
    - Includes wallet credentials in headers
-4. MCP server's @require_payment checks:
-   - Tool "add" costs $0.10
-   - Agent wallet has sufficient balance
-5. Payment is processed ($0.10 transferred)
-6. Tool executes: 15 + 27 = 42
-7. Result returned to agent
-8. Agent responds: "15 plus 27 equals 42"
+4. MCP server receives the request
+5. Tool executes: 15 + 27 = 42
+6. Result returned to agent
+7. Agent responds: "15 plus 27 equals 42"
 ```
 
 ## Customization
 
-### Adding New Paid Tools
+### Adding New Tools
 
 1. Add the tool definition in `list_tools()`
-2. Add the pricing in `@require_payment` decorator
-3. Implement the tool logic in `call_tool()`
+2. Implement the tool logic in `call_tool()`
 
 ```python
-@require_payment(
-    {
-        "add": 0.10,
-        "subtract": 0.20,
-        "multiply": 0.15,      # New tool
-        "divide": 0.25,        # New tool
-    }
-)
+@app.list_tools()
+async def list_tools() -> list[types.Tool]:
+    return [
+        # ... existing tools
+        types.Tool(
+            name="multiply",
+            description="Multiply two integers",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "a": {"type": "number"},
+                    "b": {"type": "number"},
+                },
+                "required": ["a", "b"],
+            },
+        ),
+    ]
+
+@app.call_tool()
 async def call_tool(tool_name: str, arguments: dict[str, Any]) -> list[TextContent]:
     # ... existing logic
     elif tool_name == "multiply":
         result = arguments["a"] * arguments["b"]
         return [types.TextContent(type="text", text=str(result))]
 ```
-
-### Dynamic Pricing
-
-You can also implement dynamic pricing based on:
-- Input complexity
-- Resource usage
-- Time of day
-- User tier
 
 ## Resources
 
